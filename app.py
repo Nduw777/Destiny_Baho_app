@@ -41,7 +41,12 @@ APP_SHEET_NAME = "Product Records"
 # ------------------------
 # GOOGLE LOGIN
 # ------------------------
-client_config = json.loads(st.secrets["gcp_credentials"])  # store JSON content in secrets
+import json
+
+# Make sure the key matches the TOML exactly
+client_config_json = st.secrets["gcp_credentials"]["value"]
+client_config = json.loads(client_config_json)
+
 
 def google_login():
     flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
