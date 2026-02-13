@@ -4,7 +4,7 @@ from datetime import datetime, date
 import os, time
 import json
 
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
@@ -21,7 +21,7 @@ st.set_page_config(
 # ------------------------
 # SESSION STATE
 # ------------------------
-for k in ["creds", "authorized", "user_email", "sheet_id"]:
+for k in ["authorized", "user_email", "sheet_id"]:
     if k not in st.session_state:
         st.session_state[k] = None if k != "authorized" else False
 
@@ -37,45 +37,26 @@ LICENSE_SHEET_ID = "11Mnt5aQrYZBEEqtKfpaxJxgh0E4VlrBUQgzJeeEzDuQ"
 APP_SHEET_NAME = "Product Records"
 
 # ------------------------
-# GOOGLE LOGIN (ONLINE SAFE)
+# SERVICE ACCOUNT AUTH
 # ------------------------
-# Load OAuth credentials from Streamlit secrets
-client_config_json = st.secrets["gcp_credentials"]["value"]
-client_config = json.loads(client_config_json)
+creds = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"],
+    scopes=SCOPES
+)
 
-def google_login():
-    """
-    Online-friendly login: users get a link, open it on their device, copy the code,
-    and paste it into the console to authenticate. Sheets created in their own Google Drive.
-    """
-    flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-    creds = flow.run_console()
-    st.session_state.creds = creds
-    st.rerun()
-
-# ------------------------
-# LOGIN PAGE
-# ------------------------
-st.title("🔐 Login")
-
-if not st.session_state.creds:
-    st.info("Step 1: Sign in with Google")
-    st.button("Sign in with Google", on_click=google_login, key="google_login")
-    st.stop()
-
-# ------------------------
-# BUILD SERVICES
-# ------------------------
-creds = st.session_state.creds
 sheets = build("sheets", "v4", credentials=creds)
 drive = build("drive", "v3", credentials=creds)
 
 # ------------------------
-# GET USER EMAIL
+# GET SELLER EMAIL
 # ------------------------
 if not st.session_state.user_email:
-    profile = drive.about().get(fields="user").execute()
-    st.session_state.user_email = profile["user"]["emailAddress"]
+    st.session_state.user_email = st.text_input(
+        "Enter your email to access your product records",
+        key="user_email_input"
+    )
+    if not st.session_state.user_email:
+        st.stop()
 
 # ------------------------
 # LICENSE CHECK
@@ -92,7 +73,6 @@ def check_license(key):
     for r in rows:
         r += [""] * (4 - len(r))
         lic, email, status, expiry = r
-
         if lic == key:
             if status != "ACTIVE":
                 return False, "License inactive"
@@ -123,10 +103,10 @@ if not st.session_state.authorized:
     st.stop()
 
 # ------------------------
-# CREATE OR GET SHEET
+# CREATE OR GET SHEET (shared per user)
 # ------------------------
-def get_or_create_sheet():
-    query = f"name='{APP_SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
+def get_or_create_sheet(user_email):
+    query = f"name='{APP_SHEET_NAME}_{user_email}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
     res = drive.files().list(q=query, fields="files(id)").execute()
     files = res.get("files", [])
 
@@ -134,11 +114,17 @@ def get_or_create_sheet():
         return files[0]["id"]
 
     file = drive.files().create(
-        body={"name": APP_SHEET_NAME, "mimeType": "application/vnd.google-apps.spreadsheet"},
+        body={"name": f"{APP_SHEET_NAME}_{user_email}", "mimeType": "application/vnd.google-apps.spreadsheet"},
         fields="id"
     ).execute()
-
     sheet_id = file["id"]
+
+    # Share sheet with the seller
+    drive.permissions().create(
+        fileId=sheet_id,
+        body={"role": "writer", "type": "user", "emailAddress": user_email},
+        fields="id"
+    ).execute()
 
     headers = [[
         "Date", "Product", "Selling price", "Cost price",
@@ -156,7 +142,7 @@ def get_or_create_sheet():
     return sheet_id
 
 if not st.session_state.sheet_id:
-    st.session_state.sheet_id = get_or_create_sheet()
+    st.session_state.sheet_id = get_or_create_sheet(st.session_state.user_email)
 
 SHEET_ID = st.session_state.sheet_id
 
@@ -189,12 +175,7 @@ def resize_last_row(sheet_id, row_index):
         body={
             "requests": [{
                 "updateDimensionProperties": {
-                    "range": {
-                        "sheetId": 0,
-                        "dimension": "ROWS",
-                        "startIndex": row_index - 1,
-                        "endIndex": row_index
-                    },
+                    "range": {"sheetId": 0, "dimension": "ROWS", "startIndex": row_index - 1, "endIndex": row_index},
                     "properties": {"pixelSize": 45},
                     "fields": "pixelSize"
                 }
@@ -210,35 +191,21 @@ def format_sheet(sheet_id):
         spreadsheetId=sheet_id,
         body={
             "requests": [
-                # HEADER STYLE
-                {
-                    "repeatCell": {
-                        "range": {"sheetId": 0, "startRowIndex": 0, "endRowIndex": 1},
-                        "cell": {
-                            "userEnteredFormat": {
-                                "backgroundColor": {"red": 0.85, "green": 0.92, "blue": 1},
-                                "textFormat": {"bold": True}
-                            }
-                        },
-                        "fields": "userEnteredFormat(backgroundColor,textFormat)"
-                    }
-                },
-                # COLUMN WIDTHS
-                {
-                    "updateDimensionProperties": {
-                        "range": {"sheetId": 0, "dimension": "COLUMNS", "startIndex": 0, "endIndex": 9},
-                        "properties": {"pixelSize": 95},
-                        "fields": "pixelSize"
-                    }
-                },
-                # IMAGE COLUMN WIDER
-                {
-                    "updateDimensionProperties": {
-                        "range": {"sheetId": 0, "dimension": "COLUMNS", "startIndex": 7, "endIndex": 8},
-                        "properties": {"pixelSize": 140},
-                        "fields": "pixelSize"
-                    }
-                }
+                {"repeatCell": {
+                    "range": {"sheetId": 0, "startRowIndex": 0, "endRowIndex": 1},
+                    "cell": {"userEnteredFormat": {"backgroundColor": {"red": 0.85, "green": 0.92, "blue": 1}, "textFormat": {"bold": True}}},
+                    "fields": "userEnteredFormat(backgroundColor,textFormat)"
+                }},
+                {"updateDimensionProperties": {
+                    "range": {"sheetId": 0, "dimension": "COLUMNS", "startIndex": 0, "endIndex": 9},
+                    "properties": {"pixelSize": 95},
+                    "fields": "pixelSize"
+                }},
+                {"updateDimensionProperties": {
+                    "range": {"sheetId": 0, "dimension": "COLUMNS", "startIndex": 7, "endIndex": 8},
+                    "properties": {"pixelSize": 140},
+                    "fields": "pixelSize"
+                }}
             ]
         }
     ).execute()
