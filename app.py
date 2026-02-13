@@ -47,7 +47,7 @@ import json
 client_config_json = st.secrets["gcp_credentials"]["value"]
 client_config = json.loads(client_config_json)
 
- def google_login():
+def google_login():
     """
     Online-friendly login: users get a link, open it on their device, paste the code here.
     This creates credentials in their own Google account Drive.
