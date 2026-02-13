@@ -39,7 +39,7 @@ APP_SHEET_NAME = "Product Records"
 # ------------------------
 # SERVICE ACCOUNT AUTH
 # ------------------------
-cfrom google.oauth2 import service_account
+from google.oauth2 import service_account
 
 creds = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"],
