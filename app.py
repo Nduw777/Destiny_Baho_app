@@ -39,11 +39,15 @@ APP_SHEET_NAME = "Product Records"
 # ------------------------
 # SERVICE ACCOUNT AUTH
 # ------------------------
+cfrom google.oauth2 import service_account
+
 creds = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"],
-    scopes=SCOPES
+    scopes=[
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/spreadsheets"
+    ]
 )
-
 sheets = build("sheets", "v4", credentials=creds)
 drive = build("drive", "v3", credentials=creds)
 
