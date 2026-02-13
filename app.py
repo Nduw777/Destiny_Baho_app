@@ -47,9 +47,14 @@ import json
 client_config_json = st.secrets["gcp_credentials"]["value"]
 client_config = json.loads(client_config_json)
 
-def google_login():
+ def google_login():
+    """
+    Online-friendly login: users get a link, open it on their device, paste the code here.
+    This creates credentials in their own Google account Drive.
+    """
     flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-    st.session_state.creds = flow.run_local_server(port=0)
+    creds = flow.run_console()  # <-- no server browser needed
+    st.session_state.creds = creds
     st.rerun()
 
 # ------------------------
