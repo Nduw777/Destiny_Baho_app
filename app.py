@@ -41,13 +41,12 @@ APP_SHEET_NAME = "Product Records"
 # ------------------------
 # GOOGLE LOGIN
 # ------------------------
-#def google_login():
-    #low = InstalledAppFlow.from_client_secrets_file(
-        #r"C:\Users\Lenovo\Product_app\client_secret.json.json",
-        #SCOPES
-    #)
-    #st.session_state.creds = flow.run_local_server(port=0)
-    #st.rerun()
+client_config = json.loads(st.secrets["gcp_credentials"])  # store JSON content in secrets
+
+def google_login():
+    flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
+    st.session_state.creds = flow.run_local_server(port=0)
+    st.rerun()
 
 # ------------------------
 # LOGIN PAGE
