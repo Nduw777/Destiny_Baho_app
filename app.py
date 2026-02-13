@@ -2,23 +2,21 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, date
 import os, time
+import json
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
 
+# ------------------------
+# PAGE CONFIG
+# ------------------------
 st.set_page_config(
     page_title="Product Recorder",
     page_icon="📦",
     layout="centered"
 )
-
-
-# ------------------------
-# PAGE CONFIG
-# ------------------------
-st.set_page_config(page_title="Product Recorder", page_icon="📦")
 
 # ------------------------
 # SESSION STATE
@@ -39,21 +37,19 @@ LICENSE_SHEET_ID = "11Mnt5aQrYZBEEqtKfpaxJxgh0E4VlrBUQgzJeeEzDuQ"
 APP_SHEET_NAME = "Product Records"
 
 # ------------------------
-# GOOGLE LOGIN
+# GOOGLE LOGIN (ONLINE SAFE)
 # ------------------------
-import json
-
-# Load Google OAuth credentials from Streamlit secrets
+# Load OAuth credentials from Streamlit secrets
 client_config_json = st.secrets["gcp_credentials"]["value"]
 client_config = json.loads(client_config_json)
 
 def google_login():
     """
-    Online-friendly login: users get a link, open it on their device, paste the code here.
-    This creates credentials in their own Google account Drive.
+    Online-friendly login: users get a link, open it on their device, copy the code,
+    and paste it into the console to authenticate. Sheets created in their own Google Drive.
     """
     flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-    creds = flow.run_console()  # <-- no server browser needed
+    creds = flow.run_console()
     st.session_state.creds = creds
     st.rerun()
 
@@ -145,10 +141,10 @@ def get_or_create_sheet():
     sheet_id = file["id"]
 
     headers = [[
-    "Date", "Product", "Selling price", "Cost price",
-    "Quantity", "Revenue", "Profit",
-    "Image Preview", "Image Link"
-]]
+        "Date", "Product", "Selling price", "Cost price",
+        "Quantity", "Revenue", "Profit",
+        "Image Preview", "Image Link"
+    ]]
 
     sheets.spreadsheets().values().append(
         spreadsheetId=sheet_id,
@@ -205,6 +201,7 @@ def resize_last_row(sheet_id, row_index):
             }]
         }
     ).execute()
+
 # ------------------------
 # SHEET FORMATTER
 # ------------------------
@@ -213,59 +210,32 @@ def format_sheet(sheet_id):
         spreadsheetId=sheet_id,
         body={
             "requests": [
-
                 # HEADER STYLE
                 {
                     "repeatCell": {
-                        "range": {
-                            "sheetId": 0,
-                            "startRowIndex": 0,
-                            "endRowIndex": 1
-                        },
+                        "range": {"sheetId": 0, "startRowIndex": 0, "endRowIndex": 1},
                         "cell": {
                             "userEnteredFormat": {
-                                "backgroundColor": {
-                                    "red": 0.85,
-                                    "green": 0.92,
-                                    "blue": 1
-                                },
-                                "textFormat": {
-                                    "bold": True
-                                }
+                                "backgroundColor": {"red": 0.85, "green": 0.92, "blue": 1},
+                                "textFormat": {"bold": True}
                             }
                         },
                         "fields": "userEnteredFormat(backgroundColor,textFormat)"
                     }
                 },
-
                 # COLUMN WIDTHS
                 {
                     "updateDimensionProperties": {
-                        "range": {
-                            "sheetId": 0,
-                            "dimension": "COLUMNS",
-                            "startIndex": 0,
-                            "endIndex": 9
-                        },
-                        "properties": {
-                            "pixelSize": 95
-                        },
+                        "range": {"sheetId": 0, "dimension": "COLUMNS", "startIndex": 0, "endIndex": 9},
+                        "properties": {"pixelSize": 95},
                         "fields": "pixelSize"
                     }
                 },
-
                 # IMAGE COLUMN WIDER
                 {
                     "updateDimensionProperties": {
-                        "range": {
-                            "sheetId": 0,
-                            "dimension": "COLUMNS",
-                            "startIndex": 7,
-                            "endIndex": 8
-                        },
-                        "properties": {
-                            "pixelSize": 140
-                        },
+                        "range": {"sheetId": 0, "dimension": "COLUMNS", "startIndex": 7, "endIndex": 8},
+                        "properties": {"pixelSize": 140},
                         "fields": "pixelSize"
                     }
                 }
@@ -370,7 +340,6 @@ if st.button("Save/BIKA", use_container_width=True):
         st.session_state.reset_form = True
         st.experimental_rerun()
 
-
 # ---------- VIEW ----------
 with tab2:
     data = sheets.spreadsheets().values().get(
@@ -379,23 +348,19 @@ with tab2:
     ).execute().get("values", [])
 
     if len(data) > 1:
-        # Force correct headers (9 columns)
         headers = [
             "Date", "Product", "Selling price", "Cost price",
             "Quantity", "Revenue", "Profit",
             "Image Preview", "Image Link"
         ]
-
         rows = data[1:]
 
         fixed_rows = []
         for r in rows:
-            # Trim extra columns OR add missing ones
             r = r[:9] + [""] * (9 - len(r))
             fixed_rows.append(r)
 
         df = pd.DataFrame(fixed_rows, columns=headers)
-
         for c in ["Selling price", "Cost price", "Quantity", "Revenue", "Profit"]:
             df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
 
