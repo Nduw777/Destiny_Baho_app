@@ -29,7 +29,7 @@ for k in ["authorized", "user_email", "sheet_id"]:
 # CONFIG
 # ------------------------
 SCOPES = [
-    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/spreadsheets"
 ]
 
@@ -109,31 +109,29 @@ if not st.session_state.authorized:
 # ------------------------
 # CREATE OR GET SHEET (shared per user)
 # ------------------------
-def get_or_create_sheet(user_email):
-    query = f"name='{APP_SHEET_NAME}_{user_email}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
-    res = drive.files().list(q=query, fields="files(id)").execute()
-    files = res.get("files", [])
+def get_or_create_sheet():
+    try:
+        query = f"name='{APP_SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
+        res = drive.files().list(q=query, fields="files(id)").execute()
+        files = res.get("files", [])
 
-    if files:
-        return files[0]["id"]
+        if files:
+            return files[0]["id"]
+
+    except Exception:
+        pass   # if search fails, just create
 
     file = drive.files().create(
-        body={"name": f"{APP_SHEET_NAME}_{user_email}", "mimeType": "application/vnd.google-apps.spreadsheet"},
+        body={"name": APP_SHEET_NAME,
+              "mimeType": "application/vnd.google-apps.spreadsheet"},
         fields="id"
     ).execute()
+
     sheet_id = file["id"]
 
-    # Share sheet with the seller
-    drive.permissions().create(
-        fileId=sheet_id,
-        body={"role": "writer", "type": "user", "emailAddress": user_email},
-        fields="id"
-    ).execute()
-
     headers = [[
-        "Date", "Product", "Selling price", "Cost price",
-        "Quantity", "Revenue", "Profit",
-        "Image Preview", "Image Link"
+        "Date","Product","Selling price","Cost price",
+        "Quantity","Revenue","Profit","Image Preview","Image Link"
     ]]
 
     sheets.spreadsheets().values().append(
@@ -146,7 +144,8 @@ def get_or_create_sheet(user_email):
     return sheet_id
 
 if not st.session_state.sheet_id:
-    st.session_state.sheet_id = get_or_create_sheet(st.session_state.user_email)
+    st.session_state.sheet_id = get_or_create_sheet()
+
 
 SHEET_ID = st.session_state.sheet_id
 
