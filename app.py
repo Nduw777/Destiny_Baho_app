@@ -33,7 +33,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets"
 ]
 
-LICENSE_SHEET_ID = "11Mnt5aQrYZBEEqtKfpaxJxgh0E4VlrBUQgzJeeEzDuQ"
+LICENSE_SHEET_ID = "1JRbHa4STLSwOhkePqcSerpnuEvxUqMTePFY_SCSrngg"
 APP_SHEET_NAME = "Product Records"
 
 # ------------------------
