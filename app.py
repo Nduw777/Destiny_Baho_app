@@ -121,9 +121,14 @@ def get_or_create_sheet():
     except Exception:
         pass   # if search fails, just create
 
+    PARENT_FOLDER_ID = "your-folder-id"
+
     file = drive.files().create(
-        body={"name": APP_SHEET_NAME,
-              "mimeType": "application/vnd.google-apps.spreadsheet"},
+        body={
+            "name": APP_SHEET_NAME,
+            "mimeType": "application/vnd.google-apps.spreadsheet",
+            "parents": [PARENT_FOLDER_ID]
+        },
         fields="id"
     ).execute()
 
@@ -154,14 +159,16 @@ SHEET_ID = st.session_state.sheet_id
 # ------------------------
 def upload_image(path):
     file = drive.files().create(
-        body={"name": os.path.basename(path)},
+        body={
+            "name": os.path.basename(path),
+            "parents": [PARENT_FOLDER_ID]   # ✅ saves to YOUR drive folder
+        },
         media_body=MediaFileUpload(path),
         fields="id"
     ).execute()
 
     file_id = file["id"]
 
-    # make image public
     drive.permissions().create(
         fileId=file_id,
         body={"role": "reader", "type": "anyone"}
