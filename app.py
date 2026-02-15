@@ -112,17 +112,12 @@ if not st.session_state.authorized:
 # CREATE OR GET SHEET (shared per user)
 # ------------------------
 def get_or_create_sheet():
-    try:
-        query = f"'{PARENT_FOLDER_ID}' in parents and name='{APP_SHEET_NAME}' and trashed=false"
+    query = f"'{PARENT_FOLDER_ID}' in parents and name='{APP_SHEET_NAME}' and trashed=false"
+    res = drive.files().list(q=query, fields="files(id)").execute()
+    files = res.get("files", [])
 
-        res = drive.files().list(q=query, fields="files(id)").execute()
-        files = res.get("files", [])
-
-        if files:
-            return files[0]["id"]
-
-    except Exception:
-        pass   # if search fails, just create
+    if files:
+        return files[0]["id"]
 
     file = drive.files().create(
         body={
