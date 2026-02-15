@@ -44,7 +44,7 @@ PARENT_FOLDER_NAME = "Product Recorder User Sheets"
 if not st.session_state.credentials:
     st.title("🔑 Google Login Required")
 
-    if "code" not in st.experimental_get_query_params():
+    if "code" not in st.query_params:
         flow = Flow.from_client_config(
             st.secrets["oauth_credentials"],
             scopes=scopes,
@@ -54,7 +54,7 @@ if not st.session_state.credentials:
         st.markdown(f"[Click here to login with Google]({auth_url})")
         st.stop()
     else:
-        code = st.experimental_get_query_params()["code"][0]
+        code = st.query_params["code"]
         flow = Flow.from_client_config(
             st.secrets["oauth_credentials"],
             scopes=scopes,
@@ -62,7 +62,7 @@ if not st.session_state.credentials:
         )
         flow.fetch_token(code=code)
         st.session_state.credentials = flow.credentials
-        st.experimental_rerun()
+        st.rerun()
 
 creds = st.session_state.credentials
 sheets = build("sheets", "v4", credentials=creds)
@@ -232,31 +232,33 @@ with tab1:
     st.info(f"Revenue/AYINJIYE: {revenue}")
     st.info(f"Profit/INYUNGU: {profit}")
 
-if st.button("Save/BIKA", use_container_width=True):
-    if img and name:
-        path = f"{name}_{int(time.time())}.png"
-        with open(path, "wb") as f:
-            f.write(img.getbuffer())
-        img_link = upload_image(path)
+    if st.button("Save/BIKA", use_container_width=True):
+        if img and name:
+            path = f"{name}_{int(time.time())}.png"
+            with open(path, "wb") as f:
+                f.write(img.getbuffer())
+            img_link = upload_image(path)
 
-        data = sheets.spreadsheets().values().get(spreadsheetId=SHEET_ID, range="A:I").execute().get("values", [])
-        if data and data[-1][0] == "TOTAL":
-            sheets.spreadsheets().values().clear(spreadsheetId=SHEET_ID, range=f"A{len(data)}:I{len(data)}").execute()
-            data.pop()
+            data = sheets.spreadsheets().values().get(spreadsheetId=SHEET_ID, range="A:I").execute().get("values", [])
+            if data and data[-1][0] == "TOTAL":
+                sheets.spreadsheets().values().clear(spreadsheetId=SHEET_ID, range=f"A{len(data)}:I{len(data)}").execute()
+                data.pop()
 
-        row = [[datetime.now().strftime("%Y-%m-%d %H:%M"), name, price, cost, qty, revenue, profit,
-                f'=IMAGE("{img_link}")', f'=HYPERLINK("{img_link}","View Image")']]
-        sheets.spreadsheets().values().append(spreadsheetId=SHEET_ID, range="A:I", valueInputOption="USER_ENTERED", body={"values": row}).execute()
+            row = [[datetime.now().strftime("%Y-%m-%d %H:%M"), name, price, cost, qty, revenue, profit,
+                    f'=IMAGE("{img_link}")', f'=HYPERLINK("{img_link}","View Image")']]
+            sheets.spreadsheets().values().append(spreadsheetId=SHEET_ID, range="A:I", valueInputOption="USER_ENTERED", body={"values": row}).execute()
 
-        last_product_row = len(data)+1
-        totals = [["TOTAL","","","",f"=SUM(E2:E{last_product_row})",f"=SUM(F2:F{last_product_row})",f"=SUM(G2:G{last_product_row})","",""]]
-        sheets.spreadsheets().values().update(spreadsheetId=SHEET_ID, range=f"A{last_product_row+1}:I{last_product_row+1}", valueInputOption="USER_ENTERED", body={"values": totals}).execute()
+            last_product_row = len(data)+1
+            totals = [["TOTAL","","","",f"=SUM(E2:E{last_product_row})",f"=SUM(F2:F{last_product_row})",f"=SUM(G2:G{last_product_row})","",""]]
+            sheets.spreadsheets().values().update(spreadsheetId=SHEET_ID, range=f"A{last_product_row+1}:I{last_product_row+1}", valueInputOption="USER_ENTERED", body={"values": totals}).execute()
 
-        resize_last_row(SHEET_ID, last_product_row)
-        format_sheet(SHEET_ID)
-        st.success("Saved Successful✅")
-        st.session_state.reset_form = True
-        st.experimental_rerun()
+            resize_last_row(SHEET_ID, last_product_row)
+            format_sheet(SHEET_ID)
+            st.success("Saved Successful✅")
+            st.session_state.reset_form = True
+            st.rerun()
+        else:
+            st.error("Please capture an image and enter product name")
 
 # View Records Tab
 with tab2:
