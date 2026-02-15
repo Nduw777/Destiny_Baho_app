@@ -11,6 +11,7 @@ from googleapiclient.errors import HttpError
 
 # ------------------------
 # PAGE CONFIG
+
 # ------------------------
 st.set_page_config(
     page_title="Product Recorder",
@@ -28,13 +29,14 @@ for k in ["authorized", "user_email", "sheet_id"]:
 # ------------------------
 # CONFIG
 # ------------------------
-SCOPES = [
-    "https://www.googleapis.com/auth/drive",
+scopes=[
+    "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/spreadsheets"
 ]
 
 LICENSE_SHEET_ID = "1JRbHa4STLSwOhkePqcSerpnuEvxUqMTePFY_SCSrngg"
 APP_SHEET_NAME = "Product Records"
+PARENT_FOLDER_ID = "1OiW-zHuVky36D62GO8ziezlRYyqoIT1R"
 
 # ------------------------
 # SERVICE ACCOUNT AUTH
@@ -111,7 +113,8 @@ if not st.session_state.authorized:
 # ------------------------
 def get_or_create_sheet():
     try:
-        query = f"name='{APP_SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
+        query = f"'{PARENT_FOLDER_ID}' in parents and name='{APP_SHEET_NAME}' and trashed=false"
+
         res = drive.files().list(q=query, fields="files(id)").execute()
         files = res.get("files", [])
 
@@ -120,8 +123,6 @@ def get_or_create_sheet():
 
     except Exception:
         pass   # if search fails, just create
-
-    PARENT_FOLDER_ID = "1OiW-zHuVky36D62GO8ziezlRYyqoIT1R"
 
     file = drive.files().create(
         body={
