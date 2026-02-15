@@ -121,7 +121,7 @@ def get_or_create_sheet():
     except Exception:
         pass   # if search fails, just create
 
-    PARENT_FOLDER_ID = "your-folder-id"
+    PARENT_FOLDER_ID = "1OiW-zHuVky36D62GO8ziezlRYyqoIT1R"
 
     file = drive.files().create(
         body={
