@@ -18,7 +18,17 @@ st.set_page_config(
     page_icon="📦",
     layout="centered"
 )
-
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {visibility: hidden;}
+    [data-testid="stDecoration"] {visibility: hidden;}
+    .stActionButton {visibility: hidden;}
+    </style>
+    """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # ------------------------
 # SESSION STATE
 # ------------------------
