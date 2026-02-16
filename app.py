@@ -18,14 +18,34 @@ st.set_page_config(
     page_icon="📦",
     layout="centered"
 )
+# ------------------------
+# HIDE STREAMLIT BRANDING
+# ------------------------
 hide_streamlit_style = """
     <style>
+    /* Hide top menu */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .stDeployButton {visibility: hidden;}
-    [data-testid="stDecoration"] {visibility: hidden;}
-    .stActionButton {visibility: hidden;}
+    
+    /* Hide toolbar buttons */
+    .stDeployButton {display: none;}
+    [data-testid="stDecoration"] {display: none;}
+    .stActionButton {display: none;}
+    
+    /* Hide bottom toolbar */
+    div[data-testid="stToolbar"] {display: none;}
+    div[data-testid="stStatusWidget"] {display: none;}
+    
+    /* Hide viewer badge (Fork/Deploy buttons) */
+    button[kind="header"] {display: none;}
+    .viewerBadge_container__1QSob {display: none;}
+    .styles_viewerBadge__1yB5_ {display: none;}
+    .viewerBadge_link__1S137 {display: none;}
+    .viewerBadge_text__1JaDK {display: none;}
+    
+    /* Additional cleanup */
+    .block-container {padding-bottom: 2rem;}
     </style>
     """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
