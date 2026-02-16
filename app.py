@@ -20,6 +20,21 @@ st.set_page_config(
 )
 
 # ------------------------
+# HIDE STREAMLIT BRANDING
+# ------------------------
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {visibility: hidden;}
+    [data-testid="stDecoration"] {visibility: hidden;}
+    .stActionButton {visibility: hidden;}
+    </style>
+    """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+# ------------------------
 # SESSION STATE
 # ------------------------
 for k in ["authorized", "user_email", "sheet_id", "credentials"]:
@@ -43,8 +58,8 @@ PARENT_FOLDER_NAME = "Product Recorder User Sheets"
 # ------------------------
 if not st.session_state.credentials:
     st.title("🔑 Google Login Required")
-    
-    # ✅ ADD THIS - Properly format the client config
+
+    # Properly format the client config for Flow
     client_config = {
         "web": {
             "client_id": st.secrets["oauth_credentials"]["client_id"],
@@ -56,10 +71,10 @@ if not st.session_state.credentials:
             "redirect_uris": st.secrets["oauth_credentials"]["redirect_uris"]
         }
     }
-    
+
     if "code" not in st.query_params:
         flow = Flow.from_client_config(
-            client_config,  # ✅ CHANGED - Use client_config instead
+            client_config,
             scopes=scopes,
             redirect_uri=st.secrets["oauth_credentials"]["redirect_uris"][0]
         )
@@ -69,13 +84,14 @@ if not st.session_state.credentials:
     else:
         code = st.query_params["code"]
         flow = Flow.from_client_config(
-            client_config,  # ✅ CHANGED - Use client_config instead
+            client_config,
             scopes=scopes,
             redirect_uri=st.secrets["oauth_credentials"]["redirect_uris"][0]
         )
         flow.fetch_token(code=code)
         st.session_state.credentials = flow.credentials
         st.rerun()
+
 creds = st.session_state.credentials
 sheets = build("sheets", "v4", credentials=creds)
 drive = build("drive", "v3", credentials=creds)
