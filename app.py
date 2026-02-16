@@ -21,6 +21,8 @@ st.set_page_config(
 # ------------------------
 # HIDE STREAMLIT BRANDING
 # ------------------------
+# HIDE STREAMLIT BRANDING
+# ------------------------
 hide_streamlit_style = """
     <style>
     /* Hide top menu */
