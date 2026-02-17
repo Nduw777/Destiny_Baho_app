@@ -214,7 +214,7 @@ def get_or_create_sheet():
     sheet_id = file["id"]
 
     headers = [[
-        "Date","Product","Selling price","Cost price",
+        "Date","Customer_name","Product","Selling price","Cost price",
         "Quantity","Revenue","Profit","Image Preview","Image Link"
     ]]
     sheets.spreadsheets().values().append(
@@ -274,6 +274,7 @@ with tab1:
     if "reset_form" not in st.session_state:
         st.session_state.reset_form = False
     if st.session_state.reset_form:
+        st.session_state.Customer_name = ""
         st.session_state.product_name = ""
         st.session_state.selling_price = 0.0
         st.session_state.cost_price = 0.0
@@ -281,6 +282,7 @@ with tab1:
         st.session_state.reset_form = False
 
     img = st.camera_input("Take product photo/ISHUSHO")
+    name_ = st.text_input("Customer_name/IZINA RY'UMUKIRIYA", key="Customer_name")
     name = st.text_input("Product name/IZINA RYI IGICURUZWA", key="product_name")
     price = st.number_input("Selling price/IKIGUZI", 0.0, key="selling_price")
     cost = st.number_input("Cost price/IKIRANGUZO", 0.0, key="cost_price")
@@ -299,14 +301,14 @@ with tab1:
                 f.write(img.getbuffer())
             img_link = upload_image(path)
 
-            data = sheets.spreadsheets().values().get(spreadsheetId=SHEET_ID, range="A:I").execute().get("values", [])
+            data = sheets.spreadsheets().values().get(spreadsheetId=SHEET_ID, range="A:J").execute().get("values", [])
             if data and data[-1][0] == "TOTAL":
                 sheets.spreadsheets().values().clear(spreadsheetId=SHEET_ID, range=f"A{len(data)}:I{len(data)}").execute()
                 data.pop()
 
-            row = [[datetime.now().strftime("%Y-%m-%d %H:%M"), name, price, cost, qty, revenue, profit,
+            row = [[datetime.now().strftime("%Y-%m-%d %H:%M"), name_,name, price, cost, qty, revenue, profit,
                     f'=IMAGE("{img_link}")', f'=HYPERLINK("{img_link}","View Image")']]
-            sheets.spreadsheets().values().append(spreadsheetId=SHEET_ID, range="A:I", valueInputOption="USER_ENTERED", body={"values": row}).execute()
+            sheets.spreadsheets().values().append(spreadsheetId=SHEET_ID, range="A:J", valueInputOption="USER_ENTERED", body={"values": row}).execute()
 
             last_product_row = len(data)+1
             totals = [["TOTAL","","","",f"=SUM(E2:E{last_product_row})",f"=SUM(F2:F{last_product_row})",f"=SUM(G2:G{last_product_row})","",""]]
@@ -322,9 +324,9 @@ with tab1:
 
 # View Records Tab
 with tab2:
-    data = sheets.spreadsheets().values().get(spreadsheetId=SHEET_ID, range="A:I").execute().get("values", [])
+    data = sheets.spreadsheets().values().get(spreadsheetId=SHEET_ID, range="A:J").execute().get("values", [])
     if len(data) > 1:
-        headers = ["Date","Product","Selling price","Cost price","Quantity","Revenue","Profit","Image Preview","Image Link"]
+        headers = ["Date","Customer_name","Product","Selling price","Cost price","Quantity","Revenue","Profit","Image Preview","Image Link"]
         rows = data[1:]
         fixed_rows = [r[:9]+[""]*(9-len(r)) for r in rows]
         df = pd.DataFrame(fixed_rows, columns=headers)
