@@ -295,7 +295,7 @@ with tab2:
     if len(data) > 1:
         headers = ["Date","Customer_name","Product","Selling price","Cost price","Quantity","Revenue","Profit","Image Preview","Image Link"]
         rows = data[1:]
-        fixed_rows = [r[:9]+[""]*(9-len(r)) for r in rows]
+        fixed_rows = [r[:10]+[""]*(10-len(r)) for r in rows]
         df = pd.DataFrame(fixed_rows, columns=headers)
         for c in ["Selling price","Cost price","Quantity","Revenue","Profit"]:
             df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
